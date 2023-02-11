@@ -1,0 +1,11 @@
+services:
+  server:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./:/server
+      - /server/node_modules
+    environment:
+      - PORT=8080
+    command: npm run dev
