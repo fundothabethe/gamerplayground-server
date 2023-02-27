@@ -7,5 +7,19 @@ services:
       - ./:/server
       - /server/node_modules
     environment:
-      - PORT=8080
+      - SERVER_PORT=8080
+      - REDIS_PORT=6379
+      - REDIS_URL=redis
+      - REDIS_USER=default
+      - REDIS_PASS=nopass
     command: npm run dev
+    depends_on:
+      - redis
+
+  redis:
+    image: redis
+    environment:
+      - REDIS_PORT=6379
+      - REDIS_URL=redis
+      - REDIS_USER=default
+      - REDIS_PASS=nopass
