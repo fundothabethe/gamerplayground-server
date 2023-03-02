@@ -2,6 +2,8 @@ const express = require("express");
 const cors = require("cors");
 const body_parser = require("body-parser");
 const redis = require("redis");
+const nodemailer = require("nodemailer");
+const fs = require("fs");
 const {
   SERVER_PORT,
   REDIS_USER,
@@ -9,6 +11,7 @@ const {
   REDIS_URL,
   REDIS_PORT,
 } = require("./configs");
+const Handlebars = require("handlebars");
 
 const app = express();
 
@@ -43,53 +46,60 @@ app.use((req, res, next) => {
 // app.get("/", (req, res) => response(200, "success", "home page here"));
 
 app.post("/", async (req, res) => {
+  // Organize data comming from the mobile device
+  if (req.body.length === 1 && req.body[0].data) req.body = req.body[0].data;
+
   // Original Data
   // console.log(req.body);
   // Cleaning data
-  // if (req.body.length)
-  //   for (let x = 0; x < req.body.length; x++) {
-  //     const keys = Object.keys(req.body[x]);
-  //     const values = Object.values(req.body[x]);
-  //     for (let y = 0; y < keys.length; y++) {
-  //       var key = keys[y].replace("(", "_").replace(")", "_");
-  //       delete req.body[x][keys[y]];
-  //       const temp_key = req.body[x];
-  //       req.body[x] = { ...temp_key, [key.toLowerCase()]: values[y] };
-  //     }
-  //   }
-  // // Cleaned data
+
+  if (req.body.length)
+    for (let x = 0; x < req.body.length; x++) {
+      const keys = Object.keys(req.body[x]);
+      const values = Object.values(req.body[x]);
+      for (let y = 0; y < keys.length; y++) {
+        var key = keys[y].replace("(", "_").replace(")", "_");
+        delete req.body[x][keys[y]];
+        const temp_key = req.body[x];
+        req.body[x] = { ...temp_key, [key.toLowerCase()]: values[y] };
+      }
+    }
+  // Cleaned data
   // console.log(req.body);
-  // // getting prev data from redis database
-  // // keep scanned data to save o(n) complexity
-  // var scanned_beacons = new Array();
-  // for (let x = 0; x < req.body.length; x++) {
-  //   var prev_data = await redis_client.get(req.body[x].devicemac_hex_);
-  //   if (prev_data && !scanned_beacons.includes(req.body[x].devicemac_hex_)) {
-  //     // Calculations
-  //     prev_data = JSON.stringify(prev_data);
-  //     console.log(prev_data);
-  //     // Save to scanned_beacons to avoid n(n) time complexity
-  //     scanned_beacons.push(req.body[x].devicemac_hex_);
-  //     // Getting average rssi_dbm
-  //     // Scanning to get average rssi_dbm
-  //     for (let y = 0; y < req.body.length; y++) {
-  //       if (req.body[y].devicemac_hex_ === req.body[x].devicemac_hex_) {
-  //         req.body[x].rssi_dbm_ =
-  //           (req.body[x].rssi_dbm_ + req.body[y].rssi_dbm_) / 2;
-  //       }
-  //     }
-  //   }
-  //   await redis_client.set(
-  //     req.body[x].devicemac_hex_,
-  //     JSON.stringify(req.body[x])
-  //   );
+  // getting prev data from redis database
+  // keep scanned data to save o(n) complexity
+  var scanned_beacons = new Array();
+  //  Get all the read data from requwt body
+  for (let x = 0; x < req.body.length; x++) {
+    // Get previously saved data from redis
+    var prev_data = await redis_client.get(req.body[x].devicemac_hex_);
 
-  //   // Data updated with average rssi_dbm
+    // Check if current beacon average is already calculated
+    if (!scanned_beacons.includes(req.body[x].devicemac_hex_)) {
+      // Calculations
+      // Save to scanned_beacons to avoid n(n) time complexity
+      scanned_beacons.push(req.body[x].devicemac_hex_);
+      // Getting average rssi_dbm
+      // Scanning to get average rssi_dbm
+      for (let y = 0; y < req.body.length; y++) {
+        if (req.body[y].devicemac_hex_ === req.body[x].devicemac_hex_) {
+          console.log("Average_rssi_dbm from req: ", req.body[x].rssi_dbm_);
+          // This doesnt get the average
+          req.body[x].rssi_dbm_ =
+            (req.body[x].rssi_dbm_ + req.body[y].rssi_dbm_) / 2;
+        }
+      }
 
-  //   console.log(req.body);
+      console.log("Average_rssi_dbm: ", req.body[x].rssi_dbm_);
+    }
 
-  //   // Update data
-  // }
+    // Data update with average rssi_dbm
+    await redis_client.set(req.body[x].devicemac_hex_, req.body[x].rssi_dbm_);
+
+    // console.log(req.body);
+
+    // Update data
+  }
 
   /*
   
@@ -153,6 +163,44 @@ app.post("/", async (req, res) => {
   //
   response(200, "success", "data recieved", res);
 });
+
+//Sending messsage
+
+// send_mail(
+//   "fundondoh@gmail.com",
+//   "trvpbevt@gmail.com",
+//   "Alert",
+//   "Someone stealing message"
+// )
+//   .then(() => console.log("sent"))
+//   .catch((err) => response(400, "failed", err, res))
+//   .finally(() => response(200, "Good", "Sent", res))
+
+const send_mail = async (from, to, subject, message) => {
+  // create reusable transporter object using the default SMTP transport
+  let transporter = nodemailer.createTransport({
+    host: "smtp.gmail.com",
+    port: 25,
+    secure: false, // true for 465, false for other ports
+    auth: {
+      user: "fundondoh@gmail.com", // generated ethereal user
+      pass: "wwpulhijfpuokuxo", // generated ethereal password
+    },
+  });
+
+  const template = Handlebars.compile(
+    fs.readFileSync("./mails/report/index.html", "utf-8")
+  );
+
+  // send mail with defined transport object
+  await transporter.sendMail({
+    from: `"Smartee 👻" <${from}>`, // sender address
+    to, // list of receivers
+    subject, // Subject line
+    html: template({ message, other_message: "fundo" }), // plain text body
+    // html: template(JSON.stringify({ message, other_message })), // plain text body
+  });
+};
 
 const response = (code, status, message, res) =>
   res.status(code).json({

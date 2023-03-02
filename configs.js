@@ -1,5 +1,5 @@
 module.exports = {
-  SERVER_PORT: process.env.SERVER_PORT,
+  SERVER_PORT: process.env.SERVER_PORT, // When starting server using node not docker-compose
   REDIS_URL: process.env.REDIS_URL,
   REDIS_PORT: process.env.REDIS_PORT,
   REDIS_USER: process.env.REDIS_USER,
