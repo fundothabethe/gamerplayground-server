@@ -4,6 +4,8 @@ const body_parser = require("body-parser");
 const redis = require("redis");
 const nodemailer = require("nodemailer");
 const fs = require("fs");
+const { Amplify, API, graphqlOperation } = require("aws-amplify");
+const awsExports = require("./src/aws-exports");
 const {
   SERVER_PORT,
   REDIS_USER,
@@ -12,26 +14,28 @@ const {
   REDIS_PORT,
 } = require("./configs");
 const Handlebars = require("handlebars");
+const { update_store_name } = require("./src/graphql/mutations");
 
 const app = express();
+Amplify.configure(awsExports);
 
 app.use(cors());
 app.use(body_parser.json());
 app.use(body_parser.urlencoded({ extended: false }));
 
-const redis_client = redis.createClient({
-  url: `redis://${REDIS_USER}:${REDIS_PASS}@${REDIS_URL}:${REDIS_PORT}`,
-  legacyMode: false,
-});
+// const redis_client = redis.createClient({
+//   url: `redis://${REDIS_USER}:${REDIS_PASS}@${REDIS_URL}:${REDIS_PORT}`,
+//   legacyMode: false,
+// });
 
-(async () => {
-  redis_client.on("error", (error) => console.error(`Error : ${error}`));
-  await redis_client
-    .connect()
-    .then(() => console.log("redis connected"))
-    .catch((err) => console.log(err))
-    .finally(() => console.log("done redis operations"));
-})();
+// (async () => {
+//   redis_client.on("error", (error) => console.error(`Error : ${error}`));
+//   await redis_client
+//     .connect()
+//     .then(() => console.log("redis connected"))
+//     .catch((err) => console.log(err))
+//     .finally(() => console.log("done redis operations"));
+// })();
 
 app.get("/%PUBLIC_URL%/favicon.ico", (req, res) =>
   res.sendFile(__dirname + "/favicon.ico")
@@ -44,6 +48,20 @@ app.use((req, res, next) => {
 
 //website
 // app.get("/", (req, res) => response(200, "success", "home page here"));
+
+// app.get(
+//   "/",
+//   async (req, res) =>
+//     // response(200, "success", "pass", res)
+//     await API.graphql(
+//       graphqlOperation(update_store_name, {
+//         input: { id: "25e0568e-3648-4551-af5b-b63fb4dfdcf9", name: "New Name" },
+//       })
+//     )
+//       .then((res) => console.log(res))
+//       .catch((err) => console.log(err))
+//       .finally(() => response(200, "success", "pass", res))
+// );
 
 app.post("/", async (req, res) => {
   // Organize data comming from the mobile device
@@ -65,40 +83,39 @@ app.post("/", async (req, res) => {
       }
     }
   // Cleaned data
-  // console.log(req.body);
+  console.log(req.body);
   // getting prev data from redis database
   // keep scanned data to save o(n) complexity
   var scanned_beacons = new Array();
   //  Get all the read data from requwt body
   for (let x = 0; x < req.body.length; x++) {
     // Get previously saved data from redis
-    var prev_data = await redis_client.get(req.body[x].devicemac_hex_);
-
+    // var prev_data = await redis_client.get(req.body[x].blemac_hex_);
     // Check if current beacon average is already calculated
-    if (!scanned_beacons.includes(req.body[x].devicemac_hex_)) {
+    if (!scanned_beacons.includes(req.body[x].blemac_hex_)) {
       // Calculations
       // Save to scanned_beacons to avoid n(n) time complexity
-      scanned_beacons.push(req.body[x].devicemac_hex_);
+      scanned_beacons.push(req.body[x].blemac_hex_);
       // Getting average rssi_dbm
       // Scanning to get average rssi_dbm
+      // Collecting rssi_dbm for the same beacon
+      var rssi_dbm_sum = req.body[x].rssi_dbm_;
+      var rssi_dbm_ave;
       for (let y = 0; y < req.body.length; y++) {
-        if (req.body[y].devicemac_hex_ === req.body[x].devicemac_hex_) {
-          console.log("Average_rssi_dbm from req: ", req.body[x].rssi_dbm_);
-          // This doesnt get the average
-          req.body[x].rssi_dbm_ =
-            (req.body[x].rssi_dbm_ + req.body[y].rssi_dbm_) / 2;
-        }
+        if (req.body[y].blemac_hex_ === req.body[x].blemac_hex_)
+          rssi_dbm_sum += req.body[y].rssi_dbm_;
       }
+      if (rssi_dbm_sum.length > 1) rssi_dbm_ave / rssi_dbm_sum.length;
+      // Data update with average rssi_dbm
+      await redis_client.set(
+        req.body[x].devicemac_hex_,
+        JSON.stringify({
+          strength: req.body[x].rssi_dbm_,
+        })
+      );
 
       console.log("Average_rssi_dbm: ", req.body[x].rssi_dbm_);
     }
-
-    // Data update with average rssi_dbm
-    await redis_client.set(req.body[x].devicemac_hex_, req.body[x].rssi_dbm_);
-
-    // console.log(req.body);
-
-    // Update data
   }
 
   /*
@@ -116,47 +133,16 @@ app.post("/", async (req, res) => {
     "bracon_mac_address": "strength"
   }
   
-  Dynamodb database
-  
-  Original Structure
-  
-  type Store {
-    id: ID!
-    name: String!
-    readers(filter: ModelReadersFilterInput, sortDirection: ModelSortDirection, limit: Int, nextToken: String): ModelReadersConnection
-    createdAt: AWSDateTime!
-    updatedAt: AWSDateTime!
-  }
-  
-  type Readers {
-    id: ID!
-    status: String!
-    position: String!
-    entrance_type: String
-    store_id: ID!
-    location(filter: ModelLocationFilterInput, sortDirection: ModelSortDirection, limit: Int, nextToken: String): ModelLocationConnection
-    beacons(filter: ModelBeaconFilterInput, sortDirection: ModelSortDirection, limit: Int, nextToken: String): ModelBeaconConnection
-    createdAt: AWSDateTime!
-    updatedAt: AWSDateTime!
-  }
-
-  type Beacon {
-    id: ID!
-    mac: String!
-    status: String!
-    signal_strength: Int!
-    reader_id: ID!
-    createdAt: AWSDateTime!
-    updatedAt: AWSDateTime!
-  }
-
-  type Location {
-    id: ID!
-    latitude: Float!
-    longitude: Float!
-    reader_id: ID!
-    createdAt: AWSDateTime!
-    updatedAt: AWSDateTime!
+  {
+    "reader_id": {
+      "ble_id": {
+        "reader_id": String,
+        "strength": Int,
+        "in-store": Boolean,
+      }
+      ...
+    }
+    ...
   }
 
   Updating   */
