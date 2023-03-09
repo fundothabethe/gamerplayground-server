@@ -1,6 +1,6 @@
 ### Server side code
 
-### Data coming from readers
+## Data coming from readers
 
 [
 {
@@ -16,7 +16,7 @@
 
 ]
 
-### cleaned data
+## cleaned data
 
 [
 {
@@ -34,7 +34,7 @@ rawdata*hex*: String
 
 ## Structure of redis database
 
-### Reader collection
+## Reader collection
 
 {
 outer_entrance: {
@@ -56,4 +56,4 @@ in_store: Boolean
 }
 }
 
-### Data updated on the dynamodb
+## Data updated on the dynamodb
