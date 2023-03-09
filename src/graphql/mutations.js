@@ -97,20 +97,6 @@ const updateStore = /* GraphQL */ `
     }
   }
 `;
-const update_store_name = /* GraphQL */ `
-  mutation UpdateStore(
-    $input: UpdateStoreInput!
-    $condition: ModelStoreConditionInput
-  ) {
-    updateStore(input: $input, condition: $condition) {
-      id
-      name
-      createdAt
-      updatedAt
-    }
-  }
-`;
-
 const deleteStore = /* GraphQL */ `
   mutation DeleteStore(
     $input: DeleteStoreInput!
@@ -371,5 +357,5 @@ const deleteLocation = /* GraphQL */ `
 `;
 
 module.exports = {
-  update_store_name,
+  updateStore,
 };

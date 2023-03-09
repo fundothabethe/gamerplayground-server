@@ -91,6 +91,7 @@ const onUpdateStore = /* GraphQL */ `
     }
   }
 `;
+
 const onDeleteStore = /* GraphQL */ `
   subscription OnDeleteStore($filter: ModelSubscriptionStoreFilterInput) {
     onDeleteStore(filter: $filter) {
@@ -319,3 +320,6 @@ const onDeleteLocation = /* GraphQL */ `
     }
   }
 `;
+module.exports = {
+  onUpdateStore,
+};

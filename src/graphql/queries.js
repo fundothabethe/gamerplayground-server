@@ -1,7 +1,7 @@
 /* eslint-disable */
 // this is an auto generated file. This will be overwritten
 
-const getStore = /* GraphQL */ `
+export const getStore = /* GraphQL */ `
   query GetStore($id: ID!) {
     getStore(id: $id) {
       id
@@ -46,7 +46,7 @@ const getStore = /* GraphQL */ `
     }
   }
 `;
-const listStores = /* GraphQL */ `
+export const listStores = /* GraphQL */ `
   query ListStores(
     $filter: ModelStoreFilterInput
     $limit: Int
@@ -98,7 +98,7 @@ const listStores = /* GraphQL */ `
     }
   }
 `;
-const getReaders = /* GraphQL */ `
+export const getReaders = /* GraphQL */ `
   query GetReaders($id: ID!) {
     getReaders(id: $id) {
       id
@@ -134,7 +134,7 @@ const getReaders = /* GraphQL */ `
     }
   }
 `;
-const listReaders = /* GraphQL */ `
+export const listReaders = /* GraphQL */ `
   query ListReaders(
     $filter: ModelReadersFilterInput
     $limit: Int
@@ -177,7 +177,7 @@ const listReaders = /* GraphQL */ `
     }
   }
 `;
-const getBeacon = /* GraphQL */ `
+export const getBeacon = /* GraphQL */ `
   query GetBeacon($id: ID!) {
     getBeacon(id: $id) {
       id
@@ -190,7 +190,7 @@ const getBeacon = /* GraphQL */ `
     }
   }
 `;
-const listBeacons = /* GraphQL */ `
+export const listBeacons = /* GraphQL */ `
   query ListBeacons(
     $filter: ModelBeaconFilterInput
     $limit: Int
@@ -210,7 +210,7 @@ const listBeacons = /* GraphQL */ `
     }
   }
 `;
-const getLocation = /* GraphQL */ `
+export const getLocation = /* GraphQL */ `
   query GetLocation($id: ID!) {
     getLocation(id: $id) {
       id
@@ -222,7 +222,7 @@ const getLocation = /* GraphQL */ `
     }
   }
 `;
-const listLocations = /* GraphQL */ `
+export const listLocations = /* GraphQL */ `
   query ListLocations(
     $filter: ModelLocationFilterInput
     $limit: Int
@@ -241,7 +241,7 @@ const listLocations = /* GraphQL */ `
     }
   }
 `;
-const readersByStore_id = /* GraphQL */ `
+export const readersByStore_id = /* GraphQL */ `
   query ReadersByStore_id(
     $store_id: ID!
     $sortDirection: ModelSortDirection
@@ -292,7 +292,7 @@ const readersByStore_id = /* GraphQL */ `
     }
   }
 `;
-const beaconsByReader_id = /* GraphQL */ `
+export const beaconsByReader_id = /* GraphQL */ `
   query BeaconsByReader_id(
     $reader_id: ID!
     $sortDirection: ModelSortDirection
@@ -320,7 +320,7 @@ const beaconsByReader_id = /* GraphQL */ `
     }
   }
 `;
-const locationsByReader_id = /* GraphQL */ `
+export const locationsByReader_id = /* GraphQL */ `
   query LocationsByReader_id(
     $reader_id: ID!
     $sortDirection: ModelSortDirection
