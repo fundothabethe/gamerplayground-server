@@ -2,18 +2,18 @@
 
 ## Data coming from readers
 
-[
-    {
-        "TimeStamp": String,
-        "DeviceMac(hex)": String,
-        "DataFormat": String,
-        "BLEMac(hex)": String,
-        "RSSI(dBm)": Integer,
-        "BLEName": String,
-        "RawData(hex)": String
-    },
-    ...
-]
+[\
+    {\
+        "TimeStamp": String,\
+        "DeviceMac(hex)": String,\
+        "DataFormat": String,\
+        "BLEMac(hex)": String,\
+        "RSSI(dBm)": Integer,\
+        "BLEName": String,\
+        "RawData(hex)": String\
+    },\
+    ...\
+]\
 
 ## cleaned data
 
