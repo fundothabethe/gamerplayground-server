@@ -3,9 +3,9 @@
 ## Data coming from readers
 
 [\
-&nbsp    {\
-&nbsp&nbsp   "TimeStamp": String,\
- &nbsp&nbsp         "DeviceMac(hex)": String,\
+&nbsp;    {\
+&nbsp;&nbsp;   "TimeStamp": String,\
+ &nbsp;&nbsp;       "DeviceMac(hex)": String,\
         "DataFormat": String,\
         "BLEMac(hex)": String,\
         "RSSI(dBm)": Integer,\
