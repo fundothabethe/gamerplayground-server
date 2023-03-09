@@ -1,59 +1,58 @@
 ### Server side code
 
-### Data coming from readers
+## Data coming from readers
 
 [
-{
-"TimeStamp": String,
-"DeviceMac(hex)": String,
-"DataFormat": String,
-"BLEMac(hex)": String,
-"RSSI(dBm)": Integer,
-"BLEName": String,
-"RawData(hex)": String
-},
-...
-
+    {
+        "TimeStamp": String,
+        "DeviceMac(hex)": String,
+        "DataFormat": String,
+        "BLEMac(hex)": String,
+        "RSSI(dBm)": Integer,
+        "BLEName": String,
+        "RawData(hex)": String
+    },
+    ...
 ]
 
-### cleaned data
+## cleaned data
 
 [
-{
-timestamp: String,
-devicemac*hex*: String,
-dataformat: String,
-blemac*hex*: String,
-rssi*dbm*: Integer,
-blename: String,
-rawdata*hex*: String
-},
-...
-
+    {
+        timestamp: String,
+        devicemac*hex*: String,
+        dataformat: String,
+        blemac*hex*: String,
+        rssi*dbm*: Integer,
+        blename: String,
+        rawdata*hex*: String
+    },
+    ...
 ]
 
 ## Structure of redis database
 
-### Reader collection
+## **Reader collection**
 
 {
-outer_entrance: {
-entrance_type: String "inner" || "outer",
-entrance: Boolean,
-reader_id: String
-},
-inner_entrance: {
-entrance_type: String "inner" || "outer",
-entrance: Boolean,
-},
-reader_mac: {
-ble_mac: {
-status: String "active",
-strength: Integer,
-in_store: Boolean
-},
-...
-}
+    outer_entrance: {
+        entrance_type: String "inner" || "outer",
+        entrance: Boolean,
+        reader_id: String
+    },
+    inner_entrance: {
+        entrance_type: String "inner" || "outer",
+        entrance: Boolean,
+    },
+    reader_mac: {
+        ble_mac: {
+        status: String "active",
+        strength: Integer,
+        in_store: Boolean
+        },
+        ...
+    }
+    ...
 }
 
-### Data updated on the dynamodb
+## Data updated on the dynamodb

@@ -5,6 +5,7 @@ const redis = require("redis");
 const nodemailer = require("nodemailer");
 const fs = require("fs");
 const { Amplify, API, graphqlOperation } = require("aws-amplify");
+const Handlebars = require("handlebars");
 const awsExports = require("./src/aws-exports");
 const {
   SERVER_PORT,
@@ -13,9 +14,6 @@ const {
   REDIS_URL,
   REDIS_PORT,
 } = require("./configs");
-const Handlebars = require("handlebars");
-const { updateStore } = require("./src/graphql/mutations");
-const { stringify } = require("querystring");
 
 const app = express();
 Amplify.configure(awsExports);
@@ -61,7 +59,7 @@ app.get("/", async (req, res) => {
 app.get("/set-up", async (req, res) => {
   try {
     await redis_client.set(
-      "outer_entrance",
+      "68B9D3D194E4",
       JSON.stringify({
         entrance_type: "outer",
         entrance: true,
@@ -69,7 +67,7 @@ app.get("/set-up", async (req, res) => {
       })
     );
     await redis_client.set(
-      "inner_entrance",
+      "bleReader",
       JSON.stringify({
         entrance_type: "inner",
         entrance: true,
@@ -85,8 +83,8 @@ app.get("/set-up", async (req, res) => {
 
 app.get("/get-set-up", async (req, res) => {
   try {
-    console.log(await redis_client.get("outer_entrance"));
-    console.log(await redis_client.get("inner_entrance"));
+    console.log(await redis_client.get("68B9D3D194E4"));
+    console.log(await redis_client.get("bleReader"));
   } catch (error) {
     console.log(error);
   } finally {
@@ -235,7 +233,6 @@ app.post("/", async (req, res) => {
         ) {
           // Set data for the data to be saved
           // Reader is an outside reader
-          console.log("outer Reader " + req.body[x].rssi_dbm_);
 
           console.log(
             "in-store: " +
@@ -244,6 +241,7 @@ app.post("/", async (req, res) => {
                 req.body[x].rssi_dbm_
               )
           );
+          console.log("outer Reader " + req.body[x].rssi_dbm_);
           console.log(
             "outer Reader " +
               inner_reader_data[req.body[x].blemac_hex_].strength
