@@ -64,6 +64,14 @@ app.get("/set-up", async (req, res) => {
         entrance_type: "outer",
         entrance: true,
         reader_id: "68B9D3D194E4",
+        coords: {
+          latitude: 2.5645,
+          longitude: 2.5645,
+        },
+        offset: 0,
+        turning_parameter_1: 0,
+        turning_parameter_2: 0,
+        turning_parameter_3: 0,
       })
     );
     await redis_client.set(
@@ -72,6 +80,14 @@ app.get("/set-up", async (req, res) => {
         entrance_type: "inner",
         entrance: true,
         reader_id: "bleReader",
+        coords: {
+          latitude: 2.5645,
+          longitude: 2.5645,
+        },
+        offset: 13.8,
+        turning_parameter_1: 0,
+        turning_parameter_2: 0,
+        turning_parameter_3: 0,
       })
     );
   } catch (error) {
@@ -130,14 +146,6 @@ app.post("/", async (req, res) => {
 
   // Cleaned data
 
-  var inner_entrance;
-  var outer_entrance;
-  var inner_reader_data;
-  var outer_reader_data;
-  var reader_prev_data;
-  var new_reader_data = new Object();
-  const inner_reader_offset = 13.8;
-
   //
 
   for (let i = 0; i < req.body.length; i++)
@@ -150,163 +158,193 @@ app.post("/", async (req, res) => {
         new_body = [...new_body, req.body[x]];
     }
   req.body = new_body;
+  if (req.body.length) {
+    const scanned_beacons = [];
+    for (let x = 0; x < req.body.length; x++) {
+      if (!scanned_beacons.includes(req.body[x].blemac_hex_)) {
+        const ble_readings = JSON.parse(
+          await redis_client.get(req.body[x].blemac_hex_)
+        );
 
-  try {
-    inner_entrance = JSON.parse(await redis_client.get("inner_entrance"));
-    outer_entrance = JSON.parse(await redis_client.get("outer_entrance"));
-    if (req.body.length)
-      reader_prev_data = JSON.parse(
-        await redis_client.get(req.body[0].devicemac_hex_)
-      );
-  } catch (error) {
-    console.log(error);
-  }
+        // getting average
+        var rssi_dbm_sum = req.body[x].rssi_dbm_;
+        var rssi_dbm_ave = 0;
+        var number_of_ble = 1;
 
-  if (!req.body.length) return response(200, "fail", "No data provided", res);
-  // Get previuos data stored on redis
-  // console.log(req.body);
-  // getting prev data from redis database
-  // keep scanned data to save o(n) complexity
-  var scanned_beacons = new Array();
-  //  Get all the read data from requwt bodyget
-
-  for (let x = 0; x < req.body.length; x++) {
-    // Get previously saved data from redis
-    // var prev_data = await redis_client.get(req.body[x].blemac_hex_);
-    // Check if current beacon average is already calculated
-    if (!scanned_beacons.includes(req.body[x].blemac_hex_)) {
-      // Calculations
-      // Save to scanned_beacons to avoid n(n) time complexity
-      scanned_beacons.push(req.body[x].blemac_hex_);
-      // Getting average rssi_dbm
-      // Scanning to get average rssi_dbm
-      // Collecting rssi_dbm for the same beacon
-      var rssi_dbm_sum = req.body[x].rssi_dbm_;
-      var rssi_dbm_ave = 0;
-      var number_of_ble = 1;
-
-      // int y = x + 1 prevents 2n(o)
-      for (let y = x + 1; y < req.body.length; y++) {
-        if (req.body[y].blemac_hex_ === req.body[x].blemac_hex_) {
-          rssi_dbm_sum += req.body[y].rssi_dbm_;
-          number_of_ble++;
+        //
+        // int y = x + 1 prevents 2n(o)
+        for (let y = x + 1; y < req.body.length; y++) {
+          if (req.body[y].blemac_hex_ === req.body[x].blemac_hex_) {
+            rssi_dbm_sum += req.body[y].rssi_dbm_;
+            number_of_ble++;
+          }
         }
-      }
-      if (number_of_ble > 1)
         rssi_dbm_ave = parseFloat((rssi_dbm_sum / number_of_ble).toFixed(2));
-      // Data update with average rssi_dbm
+        // Data update with average rssi_dbm
 
-      req.body[x].rssi_dbm_ = rssi_dbm_ave;
-      // Get entrance reader data to compare with current ble
+        req.body[x].rssi_dbm_ = rssi_dbm_ave;
 
-      // Do calculations for in-store out-store trollies
-      // Get inner entrance data
+        const reader_offer = JSON.parse(
+          await redis_client.get(req.body[x].devicemac_hex_)
+        );
+        req.body[x].rssi_dbm_ += reader_offer.offset;
+        //
 
-      new_reader_data = {
-        ...new_reader_data,
-        [req.body[x].blemac_hex_]: {
-          strength: req.body[x].rssi_dbm_,
-          status: req.body[x].rssi_dbm_ < 100 ? "active" : "inactive",
-        },
-      };
+        if (ble_readings === null) {
+          await redis_client.set(
+            req.body[x].blemac_hex_,
+            JSON.stringify([
+              {
+                reader_id: req.body[x].devicemac_hex_,
+                ts: Date.now(),
+                strength: -500,
+              },
+              {
+                reader_id: req.body[x].devicemac_hex_,
+                ts: Date.now(),
+                strength: -2000,
+              },
+              {
+                reader_id: req.body[x].devicemac_hex_,
+                ts: Date.now(),
+                strength: -1000,
+              },
+            ])
+          );
+        }
+        // console.log(replace_expired_data(req, ble_readings, x));
+        else {
 
-      if (inner_entrance && outer_entrance) {
-        // Save the it as inner or
+          
+          // var oldest = ble_readings[0].ts;
+        //   for (let i = 0; i < ble_readings.length; i++) {
+        //     if (ble_readings[i].ts < oldest && ble_readings[i].ts < 10000) {
+        //       oldest = ble_readings[i].ts;
+        //       console.log("here");
+        //       ble_readings[i] = {
+        //         strength: -1000,
+        //         ts: Date.now(),
+        //       };
+        //     }
+        //   }
+
+        //   console.log("escaptwed");
+        //   if (ble_readings[0].strength < req.body[x].rssi_dbm_) {
+        //     temp_reader_data = ble_readings[0];
+        //     ble_readings[0] = {
+        //       strength: req.body[x].rssi_dbm_,
+        //       reader_id: req.body[x].devicemac_hex_,
+        //       ts: Date.now(),
+        //     };
+        //     temp_reader_data_1 = ble_readings[1];
+        //     ble_readings[1] = temp_reader_data;
+        //     ble_readings[2] = temp_reader_data_1;
+        //   } else if (ble_readings[1].strength < req.body[x].rssi_dbm_) {
+        //     temp_reader_data = ble_readings[1];
+        //     ble_readings[1] = {
+        //       strength: req.body[x].rssi_dbm_,
+        //       reader_id: req.body[x].devicemac_hex_,
+        //       ts: Date.now(),
+        //     };
+        //     ble_readings[2] = temp_reader_data;
+        //   } else if (ble_readings[2].strength < req.body[x].rssi_dbm_)
+        //     ble_readings[2] = {
+        //       strength: req.body[x].rssi_dbm_,
+        //       reader_id: req.body[x].devicemac_hex_,
+        //       ts: Date.now(),
+        //     };
+        // }
+
+        var best_reader;
+        var best_reader1;
+        var best_reader2;
 
         try {
-          outer_reader_data = JSON.parse(
-            await redis_client.get(outer_entrance.reader_id)
-          );
-          inner_reader_data = JSON.parse(
-            await redis_client.get(inner_entrance.reader_id)
-          );
+          if (ble_readings.length) {
+            if (ble_readings[0].reader_id)
+              best_reader = JSON.parse(
+                await redis_client.get(ble_readings[0].reader_id)
+              );
+            if (ble_readings[1].reader_id)
+              best_reader1 = JSON.parse(
+                await redis_client.get(ble_readings[1].reader_id)
+              );
+            if (ble_readings[2].reader_id)
+              best_reader2 = JSON.parse(
+                await redis_client.get(ble_readings[2].reader_id)
+              );
+            await redis_client.set(
+              req.body[x].blemac_hex_,
+              JSON.stringify(ble_readings)
+            );
+          }
         } catch (error) {
           console.log(error);
         }
-
-        console.log("calculating in_store value");
-        if (
-          inner_reader_data &&
-          outer_reader_data &&
-          inner_reader_data[req.body[x].blemac_hex_] &&
-          outer_entrance.reader_id === req.body[0].devicemac_hex_
-        ) {
-          // Set data for the data to be saved
-          // Reader is an outside reader
-
-          console.log(
-            "in-store: " +
-              !!(
-                inner_reader_data[req.body[x].blemac_hex_].strength >
-                req.body[x].rssi_dbm_
-              )
-          );
-          console.log("outer Reader " + req.body[x].rssi_dbm_);
-          console.log(
-            "outer Reader " +
-              inner_reader_data[req.body[x].blemac_hex_].strength
-          );
-
-          new_reader_data[req.body[x].blemac_hex_] = {
-            ...new_reader_data[req.body[x].blemac_hex_],
-            in_store: !!(
-              inner_reader_data[req.body[0].blemac_hex_].strength >
-              req.body[x].rssi_dbm_
-            ),
-          };
-        } else if (
-          outer_reader_data &&
-          inner_reader_data &&
-          outer_reader_data[req.body[x].blemac_hex_] &&
-          inner_entrance.reader_id === req.body[0].devicemac_hex_
-        ) {
-          console.log("original stength " + req.body[x].rssi_dbm_);
-          req.body[x].rssi_dbm_ = req.body[x].rssi_dbm_ + inner_reader_offset;
-          console.log("added stength " + req.body[x].rssi_dbm_);
-          console.log("Inner Reader " + req.body[x].rssi_dbm_);
-          console.log(
-            "outer Reader " +
-              outer_reader_data[req.body[x].blemac_hex_].strength
-          );
-
-          console.log(
-            "in-store: " +
-              !!(
-                outer_reader_data[req.body[x].blemac_hex_].strength <
-                req.body[x].rssi_dbm_
-              )
-          );
-          new_reader_data[req.body[x].blemac_hex_] = {
-            ...new_reader_data[req.body[x].blemac_hex_],
-            strength: req.body[x].rssi_dbm_,
-            in_store: !!(
-              outer_reader_data[req.body[x].blemac_hex_].strength <
-              req.body[x].rssi_dbm_
-            ),
-          };
-        } else if (!outer_reader_data) console.log("Outer reader no data");
-        else if (!inner_reader_data) console.log("Inner reader no data");
-        else if (
-          outer_entrance.reader_id !== req.body[0].devicemac_hex_ &&
-          inner_entrance.reader_id !== req.body[0].devicemac_hex_
-        )
-          console.log("Reader is not an entrance type");
-        else console.log("last");
-      } else
-        console.log(
-          "Set up the inner and outer entrance data  || run a GET request with '/set-up'"
-        ); // No entrance data
+        console.log();
+        console.log(ble_readings);
+        console.log("in or out: " + best_reader.entrance_type);
+        console.log("reader_id: " + ble_readings[0].reader_id);
+        console.log();
+      }
     }
   }
-  console.log("New Reader data to be saved by: " + req.body[0].devicemac_hex_);
-  await redis_client
-    .set(req.body[0].devicemac_hex_, JSON.stringify(new_reader_data))
-    .then(() => console.log("Data saved"))
-    .catch((err) => console.log(err))
-    .finally(() => response(200, "success", "data recieved", res));
-  // response(200, "success", "data recieved", res);
-  console.log();
+
+  response(200, "Good", "Good", res);
 });
+
+//
+
+const shuffle_the_strongest = (req, ble_readings, x) => {
+  var temp_reader_data;
+  var temp_reader_data_1;
+  //
+
+  if (ble_readings[0].strength < req.body[x].rssi_dbm_) {
+    temp_reader_data = ble_readings[0];
+    ble_readings[0] = {
+      strength: req.body[x].rssi_dbm_,
+      reader_id: req.body[x].devicemac_hex_,
+      ts: Date.now(),
+    };
+    temp_reader_data_1 = ble_readings[1];
+    ble_readings[1] = temp_reader_data;
+    ble_readings[2] = temp_reader_data_1;
+  } else if (ble_readings[1].strength < req.body[x].rssi_dbm_) {
+    temp_reader_data = ble_readings[1];
+    ble_readings[1] = {
+      strength: req.body[x].rssi_dbm_,
+      reader_id: req.body[x].devicemac_hex_,
+      ts: Date.now(),
+    };
+    ble_readings[2] = temp_reader_data;
+  } else if (ble_readings[2].strength < req.body[x].rssi_dbm_)
+    ble_readings[2] = {
+      strength: req.body[x].rssi_dbm_,
+      reader_id: req.body[x].devicemac_hex_,
+      ts: Date.now(),
+    };
+  console.log();
+  console.log(" sorting");
+  console.log(ble_readings);
+  return ble_readings;
+};
+
+const replace_expired_data = (req, ble_readings, x) => {
+  console.log(ble_readings.length);
+  for (let i = 0; ble_readings.length; i++) {
+    if (ble_readings[x].ts < Date.now() - 3000) {
+      ble_readings[x] = {
+        strength: -1000,
+        ts: Date.now(),
+      };
+
+      console.log("here");
+    }
+  }
+  console.log("ble_readings");
+  return ble_readings;
+};
 
 //Sending messsage
 

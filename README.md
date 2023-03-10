@@ -3,16 +3,16 @@
 ## Data coming from readers
 
 [\
-&nbsp;    {\
-&nbsp;&nbsp;   "TimeStamp": String,\
- &nbsp;&nbsp;       "DeviceMac(hex)": String,\
-        "DataFormat": String,\
-        "BLEMac(hex)": String,\
-        "RSSI(dBm)": Integer,\
-        "BLEName": String,\
-        "RawData(hex)": String\
-    },\
-    ...\
+&nbsp;{\
+&nbsp;&nbsp;"TimeStamp": String,\
+&nbsp;&nbsp;"DeviceMac(hex)": String,\
+&nbsp;&nbsp;"DataFormat": String,\
+&nbsp;&nbsp;"BLEMac(hex)": String,\
+&nbsp;&nbsp;"RSSI(dBm)": Integer,\
+&nbsp;&nbsp;"BLEName": String,\
+&nbsp;&nbsp;"RawData(hex)": String\
+&nbsp;},\
+&nbsp;...\
 ]\
 
 ## cleaned data

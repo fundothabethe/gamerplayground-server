@@ -29,7 +29,6 @@
         rawdata_hex_: String
     },
         ...
-    
 ]
 
 ## Structure of redis database
@@ -56,3 +55,19 @@
         }
 }
 ### Data updated on the dynamodb   
+
+
+updated database for blee
+
+
+[
+    {
+        strength:
+    },
+    {
+        ...
+    },
+    {
+
+    }
+]
